@@ -6,11 +6,11 @@ export default defineConfig({
   base: '/logidoc-server/',
 
   head: [
-    ['link', { rel: 'icon', href: '/logidoc-server/logo.svg' }]
+    ['link', { rel: 'icon', href: '/logidoc-server/logidocLogo.png' }]
   ],
 
   themeConfig: {
-    logo: '/logo.svg',
+    logo: '/logidocLogo.png',
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },

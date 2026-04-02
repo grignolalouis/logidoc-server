@@ -6,7 +6,7 @@ hero:
   text: Document indexing for AI agents
   tagline: No vectors, no embeddings. Upload a PDF, get a searchable table of contents.
   image:
-    src: /logo.svg
+    src: /logidocLogoWithText.svg
     alt: logidoc
   actions:
     - theme: brand
