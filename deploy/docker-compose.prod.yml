@@ -4,8 +4,8 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.prod
     ports:
-      - "7042:7042"
-      - "7043:7043"
+      - "${HTTP_PORT:-7042}:${HTTP_PORT:-7042}"
+      - "${MCP_PORT:-7043}:${MCP_PORT:-7043}"
     env_file:
       - .env.prod
     depends_on:
@@ -14,9 +14,9 @@ services:
     restart: unless-stopped
 
   mongo:
-    image: mongo:7
+    image: mongo:${MONGO_VERSION:-7}
     ports:
-      - "27042:27017"
+      - "${MONGO_PORT:-27042}:27017"
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped

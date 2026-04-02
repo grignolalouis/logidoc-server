@@ -14,9 +14,6 @@ cp .env.example .env
 docker compose up --build
 ```
 
-UI: http://localhost:7042
-MCP: http://localhost:7043/mcp
-
 ## MCP
 
 ```json
