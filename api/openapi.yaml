@@ -1,0 +1,260 @@
+openapi: 3.1.0
+info:
+  title: Logidoc API
+  version: 1.0.0
+  description: |
+    Vectorless, reasoning-based document indexing and retrieval.
+    Upload documents, index them into hierarchical trees, and retrieve sections via API or MCP.
+
+servers:
+  - url: http://localhost:7042
+    description: Local development
+
+paths:
+  /v1/documents:
+    post:
+      operationId: uploadDocument
+      summary: Upload a document
+      description: Uploads a file and stores it. Does not trigger indexation — call the index endpoint separately.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+    get:
+      operationId: listDocuments
+      summary: List indexed documents
+      description: Returns all documents with status "ready".
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Document"
+
+  /v1/documents/{id}:
+    get:
+      operationId: getDocument
+      summary: Get document details
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: deleteDocument
+      summary: Delete a document
+      description: Removes the document, its index, and stored file.
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/documents/{id}/file:
+    get:
+      operationId: getDocumentFile
+      summary: Download the original file
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: Raw file content
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/documents/{id}/index:
+    post:
+      operationId: indexDocument
+      summary: Trigger indexation
+      description: |
+        Starts async indexation of an uploaded document.
+        The document must be in "uploaded" or "error" status.
+        Returns immediately — poll the document status to track progress.
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "202":
+          description: Indexation started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: indexing
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /v1/documents/{id}/toc:
+    get:
+      operationId: getDocumentTOC
+      summary: Get table of contents
+      description: Returns the hierarchical tree of section titles and summaries (no full text).
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  toc:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Node"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/documents/{id}/sections:
+    get:
+      operationId: getDocumentSections
+      summary: Get full text of specific sections
+      description: Retrieves the full content of sections identified by node IDs from the TOC.
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+        - name: ids
+          in: query
+          required: true
+          description: Comma-separated node IDs to retrieve
+          schema:
+            type: string
+            example: "chapter-1,section-1-2"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Node"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    DocumentId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [uploaded, indexing, ready, error]
+        page_count:
+          type: integer
+        node_count:
+          type: integer
+        error:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        indexed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Node:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique kebab-case identifier
+        title:
+          type: string
+        summary:
+          type: string
+          description: One sentence, 15-25 words
+        text:
+          type: string
+          description: Full raw text content (empty in TOC responses)
+        start_page:
+          type: integer
+          description: First page of this section (1-indexed)
+        end_page:
+          type: integer
+          description: Last page of this section (1-indexed)
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/Node"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

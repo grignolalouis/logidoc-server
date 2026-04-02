@@ -1,0 +1,25 @@
+services:
+  logidoc:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.prod
+    ports:
+      - "7042:7042"
+      - "7043:7043"
+    env_file:
+      - .env.prod
+    depends_on:
+      mongo:
+        condition: service_started
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27042:27017"
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

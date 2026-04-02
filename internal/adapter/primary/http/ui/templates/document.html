@@ -1,0 +1,105 @@
+<div class="mb-4">
+  <a href="/ui" class="text-xs text-muted" style="text-decoration:none;">← Documents</a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <div class="flex gap-2">
+      <span class="card-title">{{.Doc.Name}}</span>
+      <span class="badge badge-{{.Doc.Status}}">{{.Doc.Status}}</span>
+    </div>
+  </div>
+  <div class="card-content" style="padding-top:8px;">
+    <p class="font-mono text-xs text-muted">{{.Doc.ID}}</p>
+    {{if .Doc.Error}}<p class="text-xs mt-1" style="color: hsl(0 84% 60%);">{{.Doc.Error}}</p>{{end}}
+  </div>
+  {{if or (eq .Doc.Status "uploaded") (eq .Doc.Status "error")}}
+  <div class="card-footer">
+    <button class="btn btn-primary" hx-post="/ui/documents/{{.Doc.ID}}/index" hx-swap="none"
+            onclick="this.disabled=true; this.textContent='Indexing…';">Index this document</button>
+  </div>
+  {{end}}
+</div>
+
+<div id="toc-section"
+  {{if eq .Doc.Status "indexing"}}
+    hx-get="/ui/documents/{{.Doc.ID}}"
+    hx-trigger="every 3s"
+    hx-select="#toc-section"
+    hx-target="#toc-section"
+    hx-swap="outerHTML"
+  {{end}}>
+
+  {{if eq .Doc.Status "indexing"}}
+  <div class="card">
+    <div class="card-content">
+      <p class="text-sm text-muted">Indexation in progress…</p>
+    </div>
+  </div>
+  {{end}}
+
+  {{if .TOC}}
+  <div class="split-view">
+    <div class="split-left">
+      <div class="flex-between mb-4">
+        <span class="card-title">Table of Contents</span>
+      </div>
+      <div class="card" style="padding:0;">
+        <div class="card-content">
+          <ul class="toc-tree">
+            {{template "toc-nodes" .TOC}}
+          </ul>
+        </div>
+      </div>
+    </div>
+    {{if .IsPDF}}
+    <div class="split-right">
+      <div class="pdf-container card" style="padding:0; overflow:hidden;">
+        <iframe id="pdf-viewer" src="/v1/documents/{{.Doc.ID}}/file#page=1" style="width:100%; height:100%; border:none;"></iframe>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+
+{{define "toc-nodes"}}
+  {{range .}}
+  <li class="toc-node">
+    <div class="flex" style="gap:6px;">
+      {{if .StartPage}}
+      <span class="toc-title" onclick="goToPage({{.StartPage}}); toggleText(this);">{{.Title}}</span>
+      {{else}}
+      <span class="toc-title" onclick="toggleText(this);">{{.Title}}</span>
+      {{end}}
+      <span class="toc-id">{{.ID}}</span>
+      {{if .StartPage}}<span class="text-xs text-muted">p.{{.StartPage}}{{if ne .StartPage .EndPage}}–{{.EndPage}}{{end}}</span>{{end}}
+    </div>
+    {{if .Summary}}<span class="toc-summary">{{.Summary}}</span>{{end}}
+    {{if .Text}}<pre class="section-text">{{.Text}}</pre>{{end}}
+    {{if .Children}}
+    <ul>{{template "toc-nodes" .Children}}</ul>
+    {{end}}
+  </li>
+  {{end}}
+{{end}}
+
+<script>
+var pdfBaseUrl = '';
+function goToPage(page) {
+  var iframe = document.getElementById('pdf-viewer');
+  if (!iframe) return;
+  if (!pdfBaseUrl) pdfBaseUrl = iframe.src.split('#')[0];
+  // Force reload by blanking then setting — browsers ignore same-origin hash-only changes on iframes
+  iframe.src = 'about:blank';
+  setTimeout(function() { iframe.src = pdfBaseUrl + '#page=' + page; }, 50);
+  // Highlight active section
+  document.querySelectorAll('.toc-node').forEach(function(n) { n.classList.remove('active'); });
+}
+function toggleText(el) {
+  var node = el.closest('.toc-node');
+  var text = node.querySelector('.section-text');
+  if (text) text.classList.toggle('open');
+  node.classList.add('active');
+}
+</script>

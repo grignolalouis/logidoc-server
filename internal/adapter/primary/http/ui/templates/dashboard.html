@@ -1,0 +1,29 @@
+<div class="flex-between mb-4">
+  <div>
+    <h2 class="card-title">Documents</h2>
+    <p class="card-description">Upload, index, and browse your documents.</p>
+  </div>
+  <form hx-post="/ui/upload" hx-encoding="multipart/form-data" hx-target="#doc-rows" hx-swap="innerHTML" style="display:flex; align-items:center; gap:8px;">
+    <label class="btn" style="cursor:pointer;">
+      Upload
+      <input type="file" name="file" accept=".pdf,.md,.txt" style="display:none"
+             onchange="this.form.requestSubmit()">
+    </label>
+  </form>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th style="width:1%"></th>
+      </tr>
+    </thead>
+    <tbody id="doc-rows" hx-get="/ui/partials/doc-list" hx-trigger="every 3s" hx-swap="innerHTML">
+      {{template "doc-rows" .}}
+    </tbody>
+  </table>
+</div>

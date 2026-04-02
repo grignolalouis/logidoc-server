@@ -1,0 +1,33 @@
+api:
+  path: ../api/openapi.yaml
+
+groups:
+  sdk-go:
+    generators:
+      - name: fernapi/fern-go-sdk
+        version: 0.0.142
+        github:
+          repository: logidoc/logidoc-sdk-go
+
+  sdk-typescript:
+    generators:
+      - name: fernapi/fern-typescript-node-sdk
+        version: 0.0.249
+        output:
+          location: npm
+          package-name: "logidoc"
+          token: ${NPM_TOKEN}
+        github:
+          repository: logidoc/logidoc-sdk-ts
+
+  sdk-python:
+    generators:
+      - name: fernapi/fern-python-sdk
+        version: 0.0.180
+        output:
+          location: pypi
+          package-name: "logidoc"
+          username: __token__
+          password: ${PYPI_TOKEN}
+        github:
+          repository: logidoc/logidoc-sdk-python

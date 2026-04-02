@@ -1,0 +1,27 @@
+{{define "doc-rows"}}
+{{if not .Documents}}
+<tr><td colspan="4" class="empty" style="padding:48px; text-align:center;">
+  <p class="text-sm text-muted">No documents yet.</p>
+</td></tr>
+{{else}}
+{{range .Documents}}
+<tr>
+  <td>
+    {{if eq .Status "ready"}}
+    <a href="/ui/documents/{{.ID}}" style="text-decoration:none; font-weight:500;">{{.Name}}</a>
+    {{else}}
+    <span class="font-medium">{{.Name}}</span>
+    {{end}}
+  </td>
+  <td><span class="badge badge-{{.Status}}">{{.Status}}</span></td>
+  <td class="font-mono text-xs text-muted">{{.CreatedAt.Format "2006-01-02 15:04"}}</td>
+  <td style="white-space:nowrap; text-align:right;">
+    {{if or (eq .Status "uploaded") (eq .Status "error")}}
+    <button class="btn btn-sm" hx-post="/ui/documents/{{.ID}}/index" hx-target="#doc-rows" hx-swap="innerHTML">Index</button>
+    {{end}}
+    <button class="btn btn-sm btn-destructive" hx-delete="/v1/documents/{{.ID}}" hx-confirm="Delete?" hx-target="closest tr" hx-swap="outerHTML">Delete</button>
+  </td>
+</tr>
+{{end}}
+{{end}}
+{{end}}
