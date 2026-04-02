@@ -50,7 +50,7 @@ func NewApp(cfg *config.Config) (*App, error) {
 	retSvc := service.NewRetrievalService(indexRepo)
 
 	// Primary adapters
-	httpServer := httpapi.NewServer(cfg.HTTP, docSvc, retSvc, fileStore, logger)
+	httpServer := httpapi.NewServer(*cfg, docSvc, retSvc, fileStore, docRepo, logger)
 	mcpServer := mcpapi.NewServer(cfg.MCP, docSvc, retSvc, logger)
 
 	return &App{

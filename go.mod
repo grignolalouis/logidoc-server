@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver/v2 v2.5.0
+	golang.org/x/sync v0.20.0
 	trpc.group/trpc-go/trpc-agent-go v1.7.0
 	trpc.group/trpc-go/trpc-agent-go/model/anthropic v1.7.0
 	trpc.group/trpc-go/trpc-mcp-go v0.0.14
@@ -61,7 +62,6 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240822170219-fc7c04adadcd // indirect

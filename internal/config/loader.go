@@ -15,6 +15,10 @@ func Load() (*Config, error) {
 	godotenv.Load()
 
 	cfg := &Config{
+		App: AppConfig{
+			Version: getEnv("APP_VERSION", "dev"),
+			APIKey:  getEnv("API_KEY", ""),
+		},
 		HTTP: HTTPConfig{
 			Addr:         getEnv("HTTP_ADDR", ":7042"),
 			ReadTimeout:  getDuration("HTTP_READ_TIMEOUT", 30*time.Second),

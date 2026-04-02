@@ -3,12 +3,18 @@ package config
 import "time"
 
 type Config struct {
+	App     AppConfig
 	HTTP    HTTPConfig
 	MCP     MCPConfig
 	Mongo   MongoConfig
 	LLM     LLMConfig
 	Indexer IndexerConfig
 	Logger  LoggerConfig
+}
+
+type AppConfig struct {
+	Version string
+	APIKey  string // optional, enables API key auth if set
 }
 
 type HTTPConfig struct {

@@ -1,4 +1,3 @@
-// Package router registers all HTTP middleware and routes.
 package router
 
 import (
@@ -14,22 +13,21 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-// Setup registers all middleware and routes on the Fiber app.
-func Setup(app *fiber.App, cfg config.HTTPConfig, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileStore, logger *slog.Logger) {
-	registerMiddleware(app, cfg, logger)
-	registerAPI(app, docSvc, retSvc, fileStore)
-	registerUI(app, docSvc, retSvc)
-}
-
-func registerMiddleware(app *fiber.App, cfg config.HTTPConfig, logger *slog.Logger) {
+func Setup(app *fiber.App, cfg config.Config, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileStore, docRepo port.DocumentRepository, logger *slog.Logger) {
+	// Middleware
 	app.Use(requestid.New())
 	app.Use(middleware.Recovery(logger))
 	app.Use(middleware.Logger(logger))
-	app.Use(middleware.CORS([]string{cfg.CORSOrigins}))
-	app.Use(middleware.RateLimit(cfg.RateLimit))
-}
+	app.Use(middleware.CORS([]string{cfg.HTTP.CORSOrigins}))
+	app.Use(middleware.RateLimit(cfg.HTTP.RateLimit))
+	app.Use(middleware.APIKeyAuth(cfg.App.APIKey))
 
-func registerAPI(app *fiber.App, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileStore) {
+	// Health (no auth)
+	healthH := handler.NewHealthHandler(docRepo, cfg.App.Version)
+	app.Get("/health", healthH.Health)
+	app.Get("/version", healthH.Version)
+
+	// API
 	docH := handler.NewDocumentHandler(docSvc, fileStore)
 	retH := handler.NewRetrievalHandler(retSvc)
 
@@ -42,16 +40,14 @@ func registerAPI(app *fiber.App, docSvc port.DocumentService, retSvc port.Retrie
 	v1.Delete("/documents/:id", docH.Delete)
 	v1.Get("/documents/:id/toc", retH.GetTOC)
 	v1.Get("/documents/:id/sections", retH.GetSections)
-}
 
-func registerUI(app *fiber.App, docSvc port.DocumentService, retSvc port.RetrievalService) {
-	h := ui.NewHandler(docSvc, retSvc)
-
-	app.Get("/ui", h.Dashboard)
-	app.Post("/ui/upload", h.UploadSubmit)
-	app.Get("/ui/documents/:id", h.Document)
-	app.Post("/ui/documents/:id/index", h.IndexSubmit)
-	app.Get("/ui/partials/doc-list", h.DocListPartial)
+	// UI
+	uiH := ui.NewHandler(docSvc, retSvc)
+	app.Get("/ui", uiH.Dashboard)
+	app.Post("/ui/upload", uiH.UploadSubmit)
+	app.Get("/ui/documents/:id", uiH.Document)
+	app.Post("/ui/documents/:id/index", uiH.IndexSubmit)
+	app.Get("/ui/partials/doc-list", uiH.DocListPartial)
 
 	app.Get("/", func(c fiber.Ctx) error {
 		return c.Redirect().To("/ui")
