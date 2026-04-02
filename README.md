@@ -31,9 +31,9 @@ docker compose up --build
 
 Integrate logidoc into your app.
 
-- [Go](https://github.com/logidoc/logidoc-sdk-go)
-- [TypeScript](https://github.com/logidoc/logidoc-sdk-ts) — `npm install logidoc`
-- [Python](https://github.com/logidoc/logidoc-sdk-python) — `pip install logidoc`
+- [Go](https://github.com/grignolalouis/logidoc-sdk-go)
+- [TypeScript](https://github.com/grignolalouis/logidoc-sdk-ts)
+- [Python](https://github.com/grignolalouis/logidoc-sdk-python)
 
 ## Docs
 
