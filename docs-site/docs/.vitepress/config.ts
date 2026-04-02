@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitepress'
 
+const badge = (method: string, text: string) =>
+  `<span class="sidebar-badge ${method.toLowerCase()}">${method}</span> ${text}`
+
 export default defineConfig({
   title: 'logidoc',
   description: 'Document indexing for AI agents',
@@ -14,8 +17,7 @@ export default defineConfig({
 
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'API', link: '/api/endpoints' },
-      { text: 'SDKs', link: '/sdks' },
+      { text: 'Reference', link: '/reference/upload-document' },
       { text: 'GitHub', link: 'https://github.com/grignolalouis/logidoc-server' }
     ],
 
@@ -38,16 +40,18 @@ export default defineConfig({
         ]
       },
       {
-        text: 'API Reference',
+        text: 'Reference',
         items: [
-          { text: 'Endpoints', link: '/api/endpoints' },
-          { text: 'MCP Tools', link: '/api/mcp-tools' },
-        ]
-      },
-      {
-        text: 'SDKs',
-        items: [
-          { text: 'Overview', link: '/sdks' },
+          { text: badge('POST', 'Upload Document'), link: '/reference/upload-document' },
+          { text: badge('GET', 'List Documents'), link: '/reference/list-documents' },
+          { text: badge('GET', 'Get Document'), link: '/reference/get-document' },
+          { text: badge('POST', 'Index Document'), link: '/reference/index-document' },
+          { text: badge('GET', 'Get TOC'), link: '/reference/get-toc' },
+          { text: badge('GET', 'Get Sections'), link: '/reference/get-sections' },
+          { text: badge('GET', 'Download File'), link: '/reference/download-file' },
+          { text: badge('DELETE', 'Delete Document'), link: '/reference/delete-document' },
+          { text: badge('GET', 'Health'), link: '/reference/health' },
+          { text: 'MCP Tools', link: '/reference/mcp-tools' },
         ]
       }
     ],
