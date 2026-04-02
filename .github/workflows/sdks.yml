@@ -1,0 +1,32 @@
+name: Generate SDKs
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/openapi.yaml']
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g fern-api
+
+      - name: Generate TypeScript SDK
+        run: cd fern && fern generate --group sdk-typescript
+        env:
+          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+
+      - name: Generate Python SDK
+        run: cd fern && fern generate --group sdk-python
+        env:
+          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
+
+      - name: Generate Go SDK
+        run: cd fern && fern generate --group sdk-go
+        env:
+          FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
