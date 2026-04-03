@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -40,8 +42,17 @@ func NewDocumentService(
 	}
 }
 
+var allowedExtensions = map[string]bool{
+	".pdf": true, ".md": true, ".txt": true, ".text": true, ".markdown": true,
+}
+
 // Upload stores the file and creates a document record. Does not trigger indexation.
 func (s *DocumentService) Upload(ctx context.Context, filename string, file io.Reader) (*domain.Document, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !allowedExtensions[ext] {
+		return nil, fmt.Errorf("unsupported file type %q (accepted: .pdf, .md, .txt)", ext)
+	}
+
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
@@ -84,9 +95,9 @@ func (s *DocumentService) Index(ctx context.Context, id string) error {
 		return fmt.Errorf("load file: %w", err)
 	}
 
-	// Detached context — indexation runs independently of the HTTP request
 	go func() {
-		indexCtx := context.WithoutCancel(ctx)
+		indexCtx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
 		if err := s.indexer.Index(indexCtx, doc.ID, doc.Name, data); err != nil {
 			s.logger.Error("indexation failed", "doc_id", doc.ID, "error", err)
 		}

@@ -1,0 +1,14 @@
+docs/
+docs-site/
+fern/
+sdks/
+test/
+.git/
+.github/
+.claude/
+*.md
+LICENSE
+.env
+.env.*
+tmp/
+bin/

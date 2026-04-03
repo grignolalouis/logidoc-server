@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -10,21 +11,22 @@ import (
 	"github.com/logidoc/logidoc-server/internal/config"
 )
 
-// Connection holds the MongoDB client and database.
 type Connection struct {
 	client *mongo.Client
 	db     *mongo.Database
 }
 
-// NewConnection creates a new MongoDB connection.
 func NewConnection(cfg config.MongoConfig) (*Connection, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	client, err := mongo.Connect(options.Client().ApplyURI(cfg.URI))
 	if err != nil {
 		return nil, fmt.Errorf("mongo connect: %w", err)
 	}
 
-	if err := client.Ping(context.Background(), nil); err != nil {
-		return nil, fmt.Errorf("mongo ping: %w", err)
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("mongo ping (is MongoDB running at %s?): %w", cfg.URI, err)
 	}
 
 	return &Connection{
@@ -33,12 +35,8 @@ func NewConnection(cfg config.MongoConfig) (*Connection, error) {
 	}, nil
 }
 
-// Database returns the MongoDB database.
-func (c *Connection) Database() *mongo.Database {
-	return c.db
-}
+func (c *Connection) Database() *mongo.Database { return c.db }
 
-// Close disconnects the MongoDB client.
 func (c *Connection) Close(ctx context.Context) error {
 	return c.client.Disconnect(ctx)
 }

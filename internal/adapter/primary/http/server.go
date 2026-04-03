@@ -22,7 +22,7 @@ func NewServer(cfg config.Config, docSvc port.DocumentService, retSvc port.Retri
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.HTTP.ReadTimeout,
 		WriteTimeout: cfg.HTTP.WriteTimeout,
-		BodyLimit:    50 * 1024 * 1024,
+		BodyLimit:    cfg.HTTP.BodyLimitMB * 1024 * 1024,
 		ErrorHandler: middleware.ErrorHandler(logger),
 	})
 

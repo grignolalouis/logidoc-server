@@ -23,6 +23,7 @@ type HTTPConfig struct {
 	WriteTimeout time.Duration
 	CORSOrigins  string
 	RateLimit    int
+	BodyLimitMB  int
 }
 
 type MCPConfig struct {

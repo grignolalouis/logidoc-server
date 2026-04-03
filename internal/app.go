@@ -29,7 +29,14 @@ func NewApp(cfg *config.Config) (*App, error) {
 	logger := infralog.New(cfg.Logger)
 	slog.SetDefault(logger)
 
-	// Secondary adapters
+	logger.Info("starting logidoc",
+		"version", cfg.App.Version,
+		"llm_provider", cfg.LLM.Provider,
+		"llm_model", cfg.LLM.Model,
+		"http", cfg.HTTP.Addr,
+		"mcp", cfg.MCP.Addr,
+	)
+
 	mongoConn, err := mongorepo.NewConnection(cfg.Mongo)
 	if err != nil {
 		return nil, fmt.Errorf("mongo connection: %w", err)

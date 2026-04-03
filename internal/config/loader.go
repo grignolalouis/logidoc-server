@@ -25,6 +25,7 @@ func Load() (*Config, error) {
 			WriteTimeout: getDuration("HTTP_WRITE_TIMEOUT", 30*time.Second),
 			CORSOrigins:  getEnv("HTTP_CORS_ORIGINS", "*"),
 			RateLimit:    getInt("HTTP_RATE_LIMIT", 100),
+			BodyLimitMB:  getInt("HTTP_BODY_LIMIT_MB", 50),
 		},
 		MCP: MCPConfig{
 			Addr:      getEnv("MCP_ADDR", ":7043"),

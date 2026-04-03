@@ -16,26 +16,16 @@ export default defineConfig({
     logo: '/images/logidocLogo.png',
 
     nav: [
-      { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Guide', link: '/guide/setup' },
       { text: 'Reference', link: '/reference/upload-document' },
       { text: 'GitHub', link: 'https://github.com/grignolalouis/logidoc-server' }
     ],
 
     sidebar: [
       {
-        text: 'Introduction',
-        items: [
-          { text: 'What is logidoc?', link: '/guide/what-is-logidoc' },
-          { text: 'Getting Started', link: '/guide/getting-started' },
-        ]
-      },
-      {
         text: 'Guide',
         items: [
-          { text: 'Configuration', link: '/guide/configuration' },
-          { text: 'LLM Providers', link: '/guide/providers' },
-          { text: 'MCP Integration', link: '/guide/mcp' },
-          { text: 'Authentication', link: '/guide/authentication' },
+          { text: 'Setup', link: '/guide/setup' },
           { text: 'Deployment', link: '/guide/deployment' },
         ]
       },

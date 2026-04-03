@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"trpc.group/trpc-go/trpc-agent-go/model"
 
@@ -64,6 +65,8 @@ func buildChunkPrompt(existing []FlatSection, start, end, total int, text string
 	return fmt.Sprintf(ChunkContinuePrompt, string(prev), start, end, total, text)
 }
 
+const maxRetries = 3
+
 func callLLM(ctx context.Context, llm model.Model, prompt string) ([]FlatSection, *model.Usage, error) {
 	req := &model.Request{
 		Messages: []model.Message{
@@ -76,6 +79,21 @@ func callLLM(ctx context.Context, llm model.Model, prompt string) ([]FlatSection
 		},
 	}
 
+	var lastErr error
+	for attempt := range maxRetries {
+		sections, usage, err := doLLMCall(ctx, llm, req)
+		if err == nil {
+			return sections, usage, nil
+		}
+		lastErr = err
+		if attempt < maxRetries-1 {
+			time.Sleep(time.Duration(attempt+1) * 2 * time.Second)
+		}
+	}
+	return nil, nil, fmt.Errorf("llm call failed after %d retries: %w", maxRetries, lastErr)
+}
+
+func doLLMCall(ctx context.Context, llm model.Model, req *model.Request) ([]FlatSection, *model.Usage, error) {
 	respChan, err := llm.GenerateContent(ctx, req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("llm call: %w", err)
