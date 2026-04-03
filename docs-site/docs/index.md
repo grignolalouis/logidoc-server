@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: logidoc
-  text: Document indexing for AI agents
+  name: Logidoc
+  text: Document Indexing for AI Agents
   tagline: No vectors, no embeddings. Upload a PDF, get a searchable table of contents.
   image:
-    src: /logidocLogoWithText.svg
-    alt: logidoc
+    src: /images/logidocLogoWithText.svg
+    alt: Logidoc
   actions:
     - theme: brand
       text: Get Started
@@ -18,11 +18,11 @@ hero:
 
 features:
   - title: Upload & Index
-    details: Upload any PDF or Markdown. The indexer builds a hierarchical tree of sections with summaries and page ranges.
+    details: Upload any PDF or Markdown file. Logidoc builds a hierarchical tree of sections — each with a title, summary, and page range — ready for agents to browse.
   - title: MCP Native
-    details: Connect Claude Code, Cursor, or any MCP client. Agents browse the TOC, pick sections, and retrieve full text.
+    details: Connect Claude Code, Cursor, or any MCP-compatible client. Agents read the table of contents, reason about which sections matter, and retrieve only what they need.
   - title: Any LLM Provider
-    details: Works with Anthropic, OpenAI, Mistral, Groq, xAI, Ollama. Switch providers with one env var.
+    details: Anthropic, OpenAI, Mistral, Groq, xAI, Ollama — switch providers with a single environment variable. Bring your own API key.
   - title: SDKs
-    details: Go, TypeScript, and Python SDKs auto-generated from the OpenAPI spec. Integrate in 5 lines of code.
+    details: Integrate Logidoc into your app seamlessly. TypeScript, Python, and Go SDKs available. Upload, index, and retrieve in a few lines of code.
 ---
