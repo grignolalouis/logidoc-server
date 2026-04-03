@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.gif" alt="logidoc" width="640">
+  <img src="https://grignolalouis.github.io/logidoc-server/images/banner.png" alt="logidoc" width="100%">
 </p>
 
 <p align="center">
