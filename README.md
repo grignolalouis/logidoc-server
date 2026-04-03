@@ -1,6 +1,12 @@
-# logidoc
+<p align="center">
+  <img src="assets/banner.gif" alt="logidoc" width="640">
+</p>
 
-Document indexing for AI agents. No vectors, no embeddings.
+<p align="center">
+  Document indexing for AI agents. No vectors, no embeddings.
+</p>
+
+---
 
 Upload a PDF, get a searchable table of contents. Agents browse sections by title and summary, then retrieve the full text of what they need.
 
@@ -29,17 +35,13 @@ docker compose up --build
 
 ## SDKs
 
-Integrate logidoc into your app.
-
 - [Go](https://github.com/grignolalouis/logidoc-sdk-go)
 - [TypeScript](https://github.com/grignolalouis/logidoc-sdk-ts)
 - [Python](https://github.com/grignolalouis/logidoc-sdk-python)
 
-## Docs
+## Documentation
 
-- [Configuration](.env.example)
-- [API Reference](api/openapi.yaml)
-- [Architecture](docs/research/09-architecture-hexagonal.md)
+[grignolalouis.github.io/logidoc-server](https://grignolalouis.github.io/logidoc-server/)
 
 ## License
 
