@@ -72,9 +72,9 @@ for section in toc.toc:
 ```
 
 ```go [Go]
-toc, _ := client.GetDocumentToc(ctx, doc.ID)
+toc, _ := c.GetDocumentToc(ctx, *doc.Id, &logidoc.GetDocumentTocRequest{})
 for _, s := range toc.Toc {
-    fmt.Printf("%s (p.%d-%d)\n", s.Title, s.StartPage, s.EndPage)
+    fmt.Printf("%s (p.%d-%d)\n", *s.Title, *s.StartPage, *s.EndPage)
 }
 ```
 

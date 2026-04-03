@@ -68,12 +68,12 @@ for s in sections.sections:
 ```
 
 ```go [Go]
-sections, _ := client.GetDocumentSections(
-    ctx, doc.ID, "chapter-1-introduction,section-1-1-context",
-)
+sections, _ := c.GetDocumentSections(ctx, *doc.Id, &logidoc.GetDocumentSectionsRequest{
+    IDs: "chapter-1-introduction,section-1-1-context",
+})
 for _, s := range sections.Sections {
-    fmt.Printf("## %s (p.%d)\n", s.Title, s.StartPage)
-    fmt.Println(s.Text)
+    fmt.Printf("## %s (p.%d)\n", *s.Title, *s.StartPage)
+    fmt.Println(*s.Text)
 }
 ```
 

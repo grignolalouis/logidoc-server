@@ -39,7 +39,8 @@ with open("downloaded.pdf", "wb") as f:
 ```
 
 ```go [Go]
-data, _ := client.GetDocumentFile(ctx, doc.ID)
+reader, _ := c.GetDocumentFile(ctx, *doc.Id, &logidoc.GetDocumentFileRequest{})
+data, _ := io.ReadAll(reader)
 os.WriteFile("downloaded.pdf", data, 0644)
 ```
 

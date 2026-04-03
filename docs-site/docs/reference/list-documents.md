@@ -46,9 +46,9 @@ for doc in docs.documents:
 ```
 
 ```go [Go]
-docs, _ := client.ListDocuments(ctx)
+docs, _ := c.ListDocuments(ctx)
 for _, doc := range docs.Documents {
-    fmt.Printf("%s [%s]\n", doc.Name, doc.Status)
+    fmt.Printf("%s [%s]\n", *doc.Name, *doc.Status)
 }
 ```
 

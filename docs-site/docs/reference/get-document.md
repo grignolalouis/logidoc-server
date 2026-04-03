@@ -45,8 +45,8 @@ print(doc.status)  # "ready"
 ```
 
 ```go [Go]
-doc, _ := client.GetDocument(ctx, "5d04eeed-...")
-fmt.Println(doc.Status) // "ready"
+doc, _ := c.GetDocument(ctx, "5d04eeed-...", &logidoc.GetDocumentRequest{})
+fmt.Println(*doc.Status) // "ready"
 ```
 
 ```bash [cURL]

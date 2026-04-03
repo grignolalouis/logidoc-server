@@ -52,12 +52,12 @@ while d.status == "indexing":
 ```
 
 ```go [Go]
-client.IndexDocument(ctx, doc.ID)
+c.IndexDocument(ctx, *doc.Id, &logidoc.IndexDocumentRequest{})
 
 // Poll until ready
 for {
-    d, _ := client.GetDocument(ctx, doc.ID)
-    if d.Status != "indexing" {
+    d, _ := c.GetDocument(ctx, *doc.Id, &logidoc.GetDocumentRequest{})
+    if *d.Status != "indexing" {
         break
     }
     time.Sleep(3 * time.Second)

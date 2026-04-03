@@ -53,9 +53,9 @@ doc = client.upload_document(file=open("report.pdf", "rb"))
 f, _ := os.Open("report.pdf")
 defer f.Close()
 
-doc, _ := client.UploadDocument(ctx, f)
-// doc.ID → "5d04eeed-076d-..."
-// doc.Status → "uploaded"
+doc, _ := c.UploadDocument(ctx, f)
+// *doc.Id → "5d04eeed-076d-..."
+// *doc.Status → "uploaded"
 ```
 
 ```bash [cURL]

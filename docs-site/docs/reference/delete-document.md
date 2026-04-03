@@ -29,7 +29,7 @@ client.delete_document(id=doc.id)
 ```
 
 ```go [Go]
-client.DeleteDocument(ctx, doc.ID)
+c.DeleteDocument(ctx, *doc.Id, &logidoc.DeleteDocumentRequest{})
 ```
 
 ```bash [cURL]
