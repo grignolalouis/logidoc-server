@@ -2,5 +2,6 @@ tmp/
 bin/
 .env
 deploy/.env.prod
-docs/
 .claude/settings.local.json
+test/pdf/
+test/output/

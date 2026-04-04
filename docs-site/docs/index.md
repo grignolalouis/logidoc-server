@@ -2,8 +2,8 @@
 layout: home
 
 hero:
-  name: Logidoc
-  text: Document Indexing for AI Agents
+  name: Document Indexing for AI Agents
+  text: ""
   tagline: No vectors, no embeddings. Upload a PDF, get a searchable table of contents.
   image:
     src: /images/logidocLogoWithText.svg
