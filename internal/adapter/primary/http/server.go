@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
+	"github.com/logidoc/logidoc-server/internal/adapter/primary/http/handler"
 	"github.com/logidoc/logidoc-server/internal/adapter/primary/http/middleware"
 	"github.com/logidoc/logidoc-server/internal/adapter/primary/http/router"
 	"github.com/logidoc/logidoc-server/internal/config"
@@ -18,7 +19,7 @@ type Server struct {
 	logger *slog.Logger
 }
 
-func NewServer(cfg config.Config, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileStore, docRepo port.DocumentRepository, logger *slog.Logger) *Server {
+func NewServer(cfg config.Config, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileRepository, healthChecker handler.HealthChecker, logger *slog.Logger) *Server {
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  cfg.HTTP.ReadTimeout,
 		WriteTimeout: cfg.HTTP.WriteTimeout,
@@ -26,7 +27,7 @@ func NewServer(cfg config.Config, docSvc port.DocumentService, retSvc port.Retri
 		ErrorHandler: middleware.ErrorHandler(logger),
 	})
 
-	router.Setup(app, cfg, docSvc, retSvc, fileStore, docRepo, logger)
+	router.Setup(app, cfg, docSvc, retSvc, fileStore, healthChecker, logger)
 
 	return &Server{app: app, cfg: cfg.HTTP, logger: logger}
 }

@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"log/slog"
 
+	agentmodel "trpc.group/trpc-go/trpc-agent-go/model"
+
 	httpapi "github.com/logidoc/logidoc-server/internal/adapter/primary/http"
 	mcpapi "github.com/logidoc/logidoc-server/internal/adapter/primary/mcp"
 	"github.com/logidoc/logidoc-server/internal/adapter/secondary/llm"
 	mongorepo "github.com/logidoc/logidoc-server/internal/adapter/secondary/repository/mongo"
 	"github.com/logidoc/logidoc-server/internal/config"
-	"github.com/logidoc/logidoc-server/internal/core/service"
-	"github.com/logidoc/logidoc-server/internal/core/service/indexer"
+	"github.com/logidoc/logidoc-server/internal/core/service/document"
+	"github.com/logidoc/logidoc-server/internal/core/service/index"
+	"github.com/logidoc/logidoc-server/internal/core/service/retrieval"
 	infralog "github.com/logidoc/logidoc-server/internal/infrastructure/logger"
 )
 
-// App holds all the server components.
 type App struct {
 	HTTPServer *httpapi.Server
 	MCPServer  *mcpapi.Server
@@ -24,7 +26,6 @@ type App struct {
 	Logger     *slog.Logger
 }
 
-// NewApp creates and wires all dependencies.
 func NewApp(cfg *config.Config) (*App, error) {
 	logger := infralog.New(cfg.Logger)
 	slog.SetDefault(logger)
@@ -43,21 +44,35 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}
 	docRepo := mongorepo.NewDocumentRepo(mongoConn)
 	indexRepo := mongorepo.NewIndexRepo(mongoConn)
-	fileStore := mongorepo.NewFileStore(mongoConn)
+	fileStore := mongorepo.NewFileRepository(mongoConn)
 
-	// LLM provider
 	llmModel, err := llm.NewModel(cfg.LLM, logger)
 	if err != nil {
 		return nil, fmt.Errorf("llm provider: %w", err)
 	}
 
-	// Core services
-	indexerSvc := indexer.NewService(llmModel, docRepo, indexRepo, logger)
-	docSvc := service.NewDocumentService(docRepo, indexRepo, fileStore, indexerSvc, logger)
-	retSvc := service.NewRetrievalService(indexRepo)
+	var visionModel agentmodel.Model
+	if cfg.Vision.Enabled {
+		visionModel, err = llm.NewModel(config.LLMConfig{
+			Provider: cfg.Vision.Provider,
+			Model:    cfg.Vision.Model,
+			APIKey:   cfg.Vision.APIKey,
+			BaseURL:  cfg.Vision.BaseURL,
+		}, logger)
+		if err != nil {
+			return nil, fmt.Errorf("vision provider: %w", err)
+		}
+	}
 
-	// Primary adapters
-	httpServer := httpapi.NewServer(*cfg, docSvc, retSvc, fileStore, docRepo, logger)
+	indexerSvc := index.NewService(llmModel, visionModel, docRepo, indexRepo, index.Config{
+		MaxPagesPerNode:        cfg.Indexer.MaxPagesPerNode,
+		EnableTableExtraction:  cfg.Indexer.EnableTableExtraction,
+		EnableImageDescription: cfg.Indexer.EnableImageDescription,
+	}, logger)
+	docSvc := document.NewDocumentService(docRepo, indexRepo, fileStore, indexerSvc, logger)
+	retSvc := retrieval.NewRetrievalService(docRepo, indexRepo)
+
+	httpServer := httpapi.NewServer(*cfg, docSvc, retSvc, fileStore, mongoConn, logger)
 	mcpServer := mcpapi.NewServer(cfg.MCP, docSvc, retSvc, logger)
 
 	return &App{
@@ -68,7 +83,6 @@ func NewApp(cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-// Shutdown gracefully stops all components.
 func (a *App) Shutdown(ctx context.Context) error {
 	a.Logger.Info("shutting down services...")
 	var errs []error

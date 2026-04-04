@@ -1,4 +1,4 @@
-package service
+package document
 
 import (
 	"context"
@@ -6,31 +6,38 @@ import (
 	"io"
 	"log/slog"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"strings"
+
 	"github.com/logidoc/logidoc-server/internal/core/domain"
 	"github.com/logidoc/logidoc-server/internal/core/port"
-	"github.com/logidoc/logidoc-server/internal/core/service/indexer"
 )
 
-var _ port.DocumentService = (*DocumentService)(nil)
+var supportedExtensions = map[string]bool{
+	".pdf": true, ".md": true, ".txt": true, ".text": true, ".markdown": true,
+	".docx": true, ".doc": true, ".pptx": true, ".ppt": true,
+	".html": true, ".htm": true, ".epub": true,
+	".xlsx": true, ".xls": true,
+	".odt": true, ".ods": true, ".odp": true,
+	".rtf": true, ".rst": true, ".org": true,
+}
 
 type DocumentService struct {
 	docRepo   port.DocumentRepository
 	indexRepo port.IndexRepository
-	fileStore port.FileStore
-	indexer   *indexer.Service
+	fileStore port.FileRepository
+	indexer   port.IndexService
 	logger    *slog.Logger
 }
 
 func NewDocumentService(
 	docRepo port.DocumentRepository,
 	indexRepo port.IndexRepository,
-	fileStore port.FileStore,
-	indexer *indexer.Service,
+	fileStore port.FileRepository,
+	indexer port.IndexService,
 	logger *slog.Logger,
 ) *DocumentService {
 	return &DocumentService{
@@ -42,15 +49,10 @@ func NewDocumentService(
 	}
 }
 
-var allowedExtensions = map[string]bool{
-	".pdf": true, ".md": true, ".txt": true, ".text": true, ".markdown": true,
-}
-
-// Upload stores the file and creates a document record. Does not trigger indexation.
 func (s *DocumentService) Upload(ctx context.Context, filename string, file io.Reader) (*domain.Document, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
-	if !allowedExtensions[ext] {
-		return nil, fmt.Errorf("unsupported file type %q (accepted: .pdf, .md, .txt)", ext)
+	if !supportedExtensions[ext] {
+		return nil, &domain.ValidationError{Message: fmt.Sprintf("unsupported file type %q", ext)}
 	}
 
 	data, err := io.ReadAll(file)
@@ -80,14 +82,13 @@ func (s *DocumentService) Upload(ctx context.Context, filename string, file io.R
 	return doc, nil
 }
 
-// Index triggers async indexation for an uploaded document.
 func (s *DocumentService) Index(ctx context.Context, id string) error {
 	doc, err := s.docRepo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 	if doc.Status != domain.StatusUploaded && doc.Status != domain.StatusError {
-		return fmt.Errorf("document %s is %s, cannot index", id, doc.Status)
+		return &domain.NotReadyError{DocID: id, Status: doc.Status}
 	}
 
 	data, err := s.fileStore.Load(ctx, id)

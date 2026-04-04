@@ -7,7 +7,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /logidoc-server ./cmd/server
 
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates poppler-utils
+RUN apk add --no-cache ca-certificates poppler-utils pandoc
 COPY --from=builder /logidoc-server /usr/local/bin/logidoc-server
 EXPOSE 7042 7043
 ENTRYPOINT ["logidoc-server"]

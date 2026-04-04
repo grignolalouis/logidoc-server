@@ -19,20 +19,17 @@ func ParseArray[T any](raw string) ([]T, error) {
 	}
 	sub := strings.TrimRight(raw[start:], " \t\n\r")
 
-	// Direct parse
 	var result []T
 	if err := json.Unmarshal([]byte(sub), &result); err == nil && len(result) > 0 {
 		return result, nil
 	}
 
-	// Try repairing unclosed brackets
 	if repaired := Repair(sub); repaired != sub {
 		if err := json.Unmarshal([]byte(repaired), &result); err == nil && len(result) > 0 {
 			return result, nil
 		}
 	}
 
-	// Try trimming trailing chars
 	for trim := len(sub); trim > 0; trim-- {
 		ch := sub[trim-1]
 		if ch != ']' && ch != '}' {
@@ -86,7 +83,6 @@ func Repair(s string) string {
 		}
 	}
 
-	// Close unclosed brackets in reverse
 	for i := len(stack) - 1; i >= 0; i-- {
 		s += string(stack[i])
 	}

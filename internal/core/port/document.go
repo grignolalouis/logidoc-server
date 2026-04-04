@@ -7,7 +7,6 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/domain"
 )
 
-// DocumentService defines the use cases for document management.
 type DocumentService interface {
 	Upload(ctx context.Context, filename string, file io.Reader) (*domain.Document, error)
 	Index(ctx context.Context, id string) error
@@ -17,7 +16,6 @@ type DocumentService interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// DocumentRepository handles persistence of documents.
 type DocumentRepository interface {
 	Save(ctx context.Context, doc *domain.Document) error
 	FindByID(ctx context.Context, id string) (*domain.Document, error)
@@ -26,8 +24,7 @@ type DocumentRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// FileStore handles raw file storage.
-type FileStore interface {
+type FileRepository interface {
 	Save(ctx context.Context, id string, data []byte) error
 	Load(ctx context.Context, id string) ([]byte, error)
 	Delete(ctx context.Context, id string) error

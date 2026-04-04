@@ -23,12 +23,10 @@ type documentModel struct {
 	IndexedAt   *int64  `bson:"indexed_at,omitempty"`
 }
 
-// DocumentRepo implements port.DocumentRepository with MongoDB.
 type DocumentRepo struct {
 	col *mongo.Collection
 }
 
-// NewDocumentRepo creates a new DocumentRepo.
 func NewDocumentRepo(conn *Connection) *DocumentRepo {
 	return &DocumentRepo{col: conn.Database().Collection("documents")}
 }
@@ -42,7 +40,7 @@ func (r *DocumentRepo) FindByID(ctx context.Context, id string) (*domain.Documen
 	var m documentModel
 	if err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&m); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, domain.ErrDocumentNotFound
+			return nil, domain.ErrDocumentNotFound(id)
 		}
 		return nil, err
 	}

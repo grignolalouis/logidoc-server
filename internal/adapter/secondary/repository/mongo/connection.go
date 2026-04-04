@@ -37,6 +37,10 @@ func NewConnection(cfg config.MongoConfig) (*Connection, error) {
 
 func (c *Connection) Database() *mongo.Database { return c.db }
 
+func (c *Connection) Check(ctx context.Context) error {
+	return c.client.Ping(ctx, nil)
+}
+
 func (c *Connection) Close(ctx context.Context) error {
 	return c.client.Disconnect(ctx)
 }

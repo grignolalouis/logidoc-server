@@ -1,12 +1,4 @@
-// Package indexer implements the document indexation pipeline.
-//
-// Two paths depending on document structure:
-//   - TOC detected: Agent reads first pages, extracts structure directly (fast, cheap)
-//   - No TOC: Sequential chunking scans every page in groups of 10 (thorough, costly)
-//
-// In both cases, the LLM produces a flat list of sections with page ranges.
-// Go code then builds the tree and fills text from parsed pages (zero LLM cost).
-package indexer
+package index
 
 import (
 	"context"
@@ -16,24 +8,42 @@ import (
 
 	"trpc.group/trpc-go/trpc-agent-go/model"
 
+	"os"
+
 	"github.com/logidoc/logidoc-server/internal/core/domain"
 	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-// Service orchestrates document indexation.
+type Config struct {
+	MaxPagesPerNode        int
+	EnableTableExtraction  bool
+	EnableImageDescription bool
+}
+
 type Service struct {
 	llm     model.Model
+	vision  model.Model // nil = use llm for vision tasks
 	docRepo port.DocumentRepository
 	idxRepo port.IndexRepository
+	cfg     Config
 	logger  *slog.Logger
 }
 
-// NewService creates a new indexer service.
-func NewService(llm model.Model, docRepo port.DocumentRepository, idxRepo port.IndexRepository, logger *slog.Logger) *Service {
-	return &Service{llm: llm, docRepo: docRepo, idxRepo: idxRepo, logger: logger}
+// NewService creates a new index service. If vision is nil, llm is used for vision tasks.
+func NewService(llm model.Model, vision model.Model, docRepo port.DocumentRepository, idxRepo port.IndexRepository, cfg Config, logger *slog.Logger) *Service {
+	if cfg.MaxPagesPerNode <= 0 {
+		cfg.MaxPagesPerNode = 20
+	}
+	return &Service{llm: llm, vision: vision, docRepo: docRepo, idxRepo: idxRepo, cfg: cfg, logger: logger}
 }
 
-// Index parses a file, detects structure, fills text, and saves the index.
+func (s *Service) visionModel() model.Model {
+	if s.vision != nil {
+		return s.vision
+	}
+	return s.llm
+}
+
 func (s *Service) Index(ctx context.Context, docID string, filename string, data []byte) error {
 	start := time.Now()
 	s.logger.Info("starting indexation", "doc_id", docID, "filename", filename, "size", len(data))
@@ -42,36 +52,51 @@ func (s *Service) Index(ctx context.Context, docID string, filename string, data
 		return fmt.Errorf("update status: %w", err)
 	}
 
-	// Step 1: Parse file into pages (Go, no LLM)
 	pages, err := ParseFile(filename, data)
 	if err != nil {
 		s.fail(ctx, docID, err)
 		return fmt.Errorf("parse file: %w", err)
 	}
+	if pages.PDFPath != "" {
+		defer os.Remove(pages.PDFPath)
+	}
 	s.logger.Info("parsed document", "doc_id", docID, "pages", pages.Count())
 
-	// Step 2: Detect structure (TOC agent or sequential chunking)
-	sections, metrics, err := s.detectStructure(ctx, pages)
+	// TODO: OCR for empty/scanned pages (VLM or tesseract)
+
+	var metrics Metrics
+
+	sections, structMetrics, err := s.detectStructure(ctx, pages)
 	if err != nil {
 		s.fail(ctx, docID, err)
 		return err
 	}
+	metrics.merge(structMetrics)
 
-	// Step 3: Calibrate page numbers (logical → physical) then build tree
-	before := sections[0].StartPage
-	sections = CalibratePages(sections, pages)
-	if sections[0].StartPage != before {
-		s.logger.Info("page offset detected",
-			"doc_id", docID,
-			"offset", sections[0].StartPage-before,
-			"before", before,
-			"after", sections[0].StartPage,
-		)
+	if len(sections) > 0 {
+		before := sections[0].StartPage
+		sections = CalibratePages(sections, pages)
+		sections = VerifyCalibration(sections, pages, s.logger)
+		if sections[0].StartPage != before {
+			s.logger.Info("page offset detected", "doc_id", docID, "offset", sections[0].StartPage-before)
+		}
 	}
-	tree := BuildTree(sections, pages.Count())
-	nodes := FillText(tree, pages)
 
-	// Step 4: Save
+	tree := BuildTree(sections, pages.Count())
+	tree = SubdivideLargeNodes(ctx, tree, pages, s.llm, s.logger, s.cfg.MaxPagesPerNode)
+
+	if s.cfg.EnableTableExtraction && pages.PDFPath != "" {
+		enrichTablesVLM(ctx, s.visionModel(), pages, &metrics, s.logger)
+	}
+
+	if s.cfg.EnableImageDescription && pages.PDFPath != "" {
+		if err := enrichWithImages(ctx, s.visionModel(), pages, &metrics, s.logger); err != nil {
+			s.logger.Warn("image enrichment failed", "doc_id", docID, "error", err)
+		}
+	}
+
+	nodes := FillTextEnriched(tree, pages)
+
 	if err := s.idxRepo.Save(ctx, &domain.Index{DocID: docID, Tree: nodes, Version: 1}); err != nil {
 		s.fail(ctx, docID, err)
 		return fmt.Errorf("save index: %w", err)
@@ -80,7 +105,6 @@ func (s *Service) Index(ctx context.Context, docID string, filename string, data
 		return fmt.Errorf("update status: %w", err)
 	}
 
-	// Log metrics
 	metrics.Duration = time.Since(start)
 	metrics.PagesTotal = pages.Count()
 	metrics.SectionsFound = CountNodes(nodes)
@@ -90,42 +114,33 @@ func (s *Service) Index(ctx context.Context, docID string, filename string, data
 		"duration", metrics.Duration.Round(time.Millisecond),
 		"pages", metrics.PagesTotal,
 		"sections", metrics.SectionsFound,
-		"llm_calls", metrics.LLMCalls,
-		"prompt_tokens", metrics.PromptTokens,
-		"completion_tokens", metrics.CompletionTokens,
-		"total_tokens", metrics.TotalTokens,
 		"pages_read", metrics.PagesRead,
+		"agent_calls", metrics.AgentCalls,
+		"agent_tokens", metrics.AgentTotalTokens,
+		"vision_calls", metrics.VisionCalls,
+		"vision_tokens", metrics.VisionTotalTokens,
+		"total_tokens", metrics.TotalTokens(),
 	)
 	return nil
 }
 
-// detectStructure tries the TOC agent first, falls back to sequential chunking.
 func (s *Service) detectStructure(ctx context.Context, pages *Pages) ([]FlatSection, *Metrics, error) {
-	// Try TOC detection
 	tocResult, err := DetectTOC(ctx, s.llm, pages)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	if tocResult.Found {
 		s.logger.Info("TOC detected", "sections", len(tocResult.Sections))
 		return tocResult.Sections, &tocResult.Metrics, nil
 	}
 
-	// No TOC → sequential chunking
 	s.logger.Info("no TOC detected, switching to sequential chunking")
 	sections, chunkMetrics, err := ProcessNoTOC(ctx, s.llm, pages, s.logger)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Merge metrics from TOC attempt + chunking
-	chunkMetrics.PromptTokens += tocResult.Metrics.PromptTokens
-	chunkMetrics.CompletionTokens += tocResult.Metrics.CompletionTokens
-	chunkMetrics.TotalTokens += tocResult.Metrics.TotalTokens
-	chunkMetrics.LLMCalls += tocResult.Metrics.LLMCalls
-	chunkMetrics.PagesRead += tocResult.Metrics.PagesRead
-
+	chunkMetrics.merge(&tocResult.Metrics)
 	return sections, chunkMetrics, nil
 }
 

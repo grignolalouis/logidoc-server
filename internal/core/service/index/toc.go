@@ -1,4 +1,4 @@
-package indexer
+package index
 
 import (
 	"context"
@@ -17,15 +17,12 @@ import (
 	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
-// TOCResult holds the result of TOC detection.
 type TOCResult struct {
 	Sections []FlatSection
 	Metrics  Metrics
 	Found    bool
 }
 
-// DetectTOC uses an LLM agent to read the first pages and extract the TOC.
-// Returns Found=false if no TOC is detected (caller should fall back to chunking).
 func DetectTOC(ctx context.Context, llm model.Model, pages *Pages) (*TOCResult, error) {
 	var pagesRead atomic.Int32
 	tools := pageTools(pages, &pagesRead)
@@ -62,21 +59,17 @@ func DetectTOC(ctx context.Context, llm model.Model, pages *Pages) (*TOCResult, 
 		return &TOCResult{Metrics: m}, fmt.Errorf("toc agent: %w", evErr)
 	}
 
-	// Check for NO_TOC signal
 	if result == "" || strings.Contains(result, "NO_TOC") {
 		return &TOCResult{Metrics: m, Found: false}, nil
 	}
 
 	sections, err := jsonutil.ParseArray[FlatSection](result)
 	if err != nil {
-		// Not parseable — treat as no TOC, caller will fall back to chunking
 		return &TOCResult{Metrics: m, Found: false}, nil
 	}
 
 	return &TOCResult{Sections: sections, Metrics: m, Found: true}, nil
 }
-
-// ---- Page tools for the agent ----
 
 type readPagesIn struct {
 	Start int `json:"start"`

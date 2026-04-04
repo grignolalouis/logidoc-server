@@ -1,4 +1,4 @@
-package indexer
+package index
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
-const defaultChunkSize = 10 // pages per chunk
+const defaultChunkSize = 10
 
 // ProcessNoTOC scans the entire document in sequential chunks,
 // asking the LLM to extract structure from each chunk.
@@ -107,8 +107,11 @@ func doLLMCall(ctx context.Context, llm model.Model, req *model.Request) ([]Flat
 		}
 		usage = resp.Usage
 		if len(resp.Choices) > 0 {
-			content += resp.Choices[0].Message.Content
-			content += resp.Choices[0].Delta.Content
+			if resp.Choices[0].Delta.Content != "" {
+				content += resp.Choices[0].Delta.Content
+			} else if resp.Choices[0].Message.Content != "" {
+				content = resp.Choices[0].Message.Content
+			}
 		}
 	}
 

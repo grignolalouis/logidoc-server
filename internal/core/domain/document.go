@@ -2,7 +2,6 @@ package domain
 
 import "time"
 
-// DocumentStatus represents the lifecycle state of a document.
 type DocumentStatus string
 
 const (
@@ -12,7 +11,6 @@ const (
 	StatusError    DocumentStatus = "error"    // indexation failed
 )
 
-// Document represents a document entity.
 type Document struct {
 	ID          string
 	Name        string

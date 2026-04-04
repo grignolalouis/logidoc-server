@@ -5,26 +5,28 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-
-	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-type HealthHandler struct {
-	docRepo port.DocumentRepository
+type HealthChecker interface {
+	Check(ctx context.Context) error
+}
+
+type Health struct {
+	checker HealthChecker
 	version string
 }
 
-func NewHealthHandler(docRepo port.DocumentRepository, version string) *HealthHandler {
-	return &HealthHandler{docRepo: docRepo, version: version}
+func NewHealth(checker HealthChecker, version string) *Health {
+	return &Health{checker: checker, version: version}
 }
 
-func (h *HealthHandler) Health(c fiber.Ctx) error {
+func (h *Health) HealthCheck(c fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 3*time.Second)
 	defer cancel()
 
 	mongo := "ok"
-	if _, err := h.docRepo.FindAll(ctx); err != nil {
-		mongo = "error: " + err.Error()
+	if err := h.checker.Check(ctx); err != nil {
+		mongo = "error"
 	}
 
 	status := "ok"
@@ -32,13 +34,9 @@ func (h *HealthHandler) Health(c fiber.Ctx) error {
 		status = "degraded"
 	}
 
-	return c.JSON(fiber.Map{
-		"status":  status,
-		"version": h.version,
-		"mongo":   mongo,
-	})
+	return c.JSON(fiber.Map{"status": status, "version": h.version, "mongo": mongo})
 }
 
-func (h *HealthHandler) Version(c fiber.Ctx) error {
+func (h *Health) Version(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"version": h.version})
 }

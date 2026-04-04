@@ -27,12 +27,10 @@ type nodeModel struct {
 	Children  []nodeModel `bson:"children,omitempty"`
 }
 
-// IndexRepo implements port.IndexRepository with MongoDB.
 type IndexRepo struct {
 	col *mongo.Collection
 }
 
-// NewIndexRepo creates a new IndexRepo.
 func NewIndexRepo(conn *Connection) *IndexRepo {
 	return &IndexRepo{col: conn.Database().Collection("indexes")}
 }
@@ -51,7 +49,7 @@ func (r *IndexRepo) FindByDocID(ctx context.Context, docID string) (*domain.Inde
 	var m indexModel
 	if err := r.col.FindOne(ctx, bson.M{"_id": docID}).Decode(&m); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, domain.ErrIndexNotFound
+			return nil, domain.ErrIndexNotFound(docID)
 		}
 		return nil, err
 	}

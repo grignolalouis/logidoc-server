@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -9,9 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Load reads configuration from environment variables (with .env fallback).
 func Load() (*Config, error) {
-	// Load .env if present (ignored in production)
 	godotenv.Load()
 
 	cfg := &Config{
@@ -42,10 +39,13 @@ func Load() (*Config, error) {
 			APIKey:   getEnv("LLM_API_KEY", ""),
 			BaseURL:  getEnv("LLM_BASE_URL", ""),
 		},
+		Vision: buildVisionConfig(),
 		Indexer: IndexerConfig{
-			MaxPagesPerNode:  getInt("INDEXER_MAX_PAGES_PER_NODE", 10),
-			MaxTokensPerNode: getInt("INDEXER_MAX_TOKENS_PER_NODE", 20000),
-			TOCCheckPages:    getInt("INDEXER_TOC_CHECK_PAGES", 20),
+			MaxPagesPerNode:        getInt("INDEXER_MAX_PAGES_PER_NODE", 20),
+			MaxTokensPerNode:       getInt("INDEXER_MAX_TOKENS_PER_NODE", 20000),
+			TOCCheckPages:          getInt("INDEXER_TOC_CHECK_PAGES", 20),
+			EnableTableExtraction:  getBool("INDEXER_ENABLE_TABLE_EXTRACTION", false),
+			EnableImageDescription: getBool("INDEXER_ENABLE_IMAGE_DESCRIPTION", false),
 		},
 		Logger: LoggerConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),
@@ -53,11 +53,7 @@ func Load() (*Config, error) {
 		},
 	}
 
-	if cfg.LLM.APIKey == "" {
-		return nil, fmt.Errorf("LLM_API_KEY is required")
-	}
-
-	return cfg, nil
+	return cfg, cfg.validate()
 }
 
 func getEnv(key, fallback string) string {
@@ -83,6 +79,20 @@ func getBool(key string, fallback bool) bool {
 		}
 	}
 	return fallback
+}
+
+func buildVisionConfig() VisionConfig {
+	provider := getEnv("VISION_PROVIDER", "")
+	if provider == "" {
+		return VisionConfig{}
+	}
+	return VisionConfig{
+		Provider: provider,
+		Model:    getEnv("VISION_MODEL", ""),
+		APIKey:   getEnv("VISION_API_KEY", getEnv("LLM_API_KEY", "")),
+		BaseURL:  getEnv("VISION_BASE_URL", ""),
+		Enabled:  true,
+	}
 }
 
 func getDuration(key string, fallback time.Duration) time.Duration {

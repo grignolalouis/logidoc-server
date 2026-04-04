@@ -6,9 +6,9 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/domain"
 )
 
-// RetrievalService defines the use cases for document retrieval.
 type RetrievalService interface {
-	GetTOC(ctx context.Context, docID string) ([]domain.Node, error)      // titles + summaries only (for MCP/agents)
-	GetFullTree(ctx context.Context, docID string) ([]domain.Node, error) // full tree with text + pages (for UI)
+	GetTOC(ctx context.Context, docID string) ([]domain.Node, error)
+	GetFullTree(ctx context.Context, docID string) ([]domain.Node, error)
 	GetSections(ctx context.Context, docID string, nodeIDs []string) ([]domain.Node, error)
+	Search(ctx context.Context, query string) ([]domain.SearchHit, error)
 }

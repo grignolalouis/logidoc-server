@@ -1,4 +1,4 @@
-package indexer
+package index
 
 // TOCAgentInstruction is the system prompt for the agent that detects and extracts the TOC.
 const TOCAgentInstruction = `You are a document structure detector. Read the first pages to find a Table of Contents.
@@ -47,3 +47,17 @@ Output ONLY a JSON array of NEW sections (not the ones above).
 
 Pages %d-%d of %d:
 %s`
+
+const SubdividePrompt = `Extract sub-sections from this text. Return a JSON array.
+Each entry: {"title": "Sub-section Title", "id": "kebab-id", "summary": "15-25 words", "level": %d, "start_page": N}
+Look for headings, numbered sections, or structural markers.
+Output ONLY a JSON array.
+
+Pages %d-%d:
+%s`
+
+const ExtractTablePrompt = "Extract ALL tables from this page as markdown tables. If there are no tables, respond with 'NO_TABLES'. Output only the markdown tables, nothing else."
+
+const DescribeImagePrompt = `Describe ONLY what you can see in this image. Do not guess, interpret, or assume anything that is not visible.
+State the type of visual (diagram, screenshot, photo, chart, etc.), list any visible text labels, and describe the layout.
+If you cannot identify something clearly, say so. Keep it to 2-3 sentences.`

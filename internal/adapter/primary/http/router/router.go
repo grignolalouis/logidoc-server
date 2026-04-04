@@ -13,8 +13,7 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-func Setup(app *fiber.App, cfg config.Config, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileStore, docRepo port.DocumentRepository, logger *slog.Logger) {
-	// Middleware
+func Setup(app *fiber.App, cfg config.Config, docSvc port.DocumentService, retSvc port.RetrievalService, fileStore port.FileRepository, healthChecker handler.HealthChecker, logger *slog.Logger) {
 	app.Use(requestid.New())
 	app.Use(middleware.Recovery(logger))
 	app.Use(middleware.Logger(logger))
@@ -22,14 +21,12 @@ func Setup(app *fiber.App, cfg config.Config, docSvc port.DocumentService, retSv
 	app.Use(middleware.RateLimit(cfg.HTTP.RateLimit))
 	app.Use(middleware.APIKeyAuth(cfg.App.APIKey))
 
-	// Health (no auth)
-	healthH := handler.NewHealthHandler(docRepo, cfg.App.Version)
-	app.Get("/health", healthH.Health)
+	healthH := handler.NewHealth(healthChecker, cfg.App.Version)
+	app.Get("/health", healthH.HealthCheck)
 	app.Get("/version", healthH.Version)
 
-	// API
-	docH := handler.NewDocumentHandler(docSvc, fileStore)
-	retH := handler.NewRetrievalHandler(retSvc)
+	docH := handler.NewDocument(docSvc, fileStore)
+	retH := handler.NewRetrieval(retSvc)
 
 	v1 := app.Group("/v1")
 	v1.Post("/documents", docH.Upload)
@@ -40,8 +37,8 @@ func Setup(app *fiber.App, cfg config.Config, docSvc port.DocumentService, retSv
 	v1.Delete("/documents/:id", docH.Delete)
 	v1.Get("/documents/:id/toc", retH.GetTOC)
 	v1.Get("/documents/:id/sections", retH.GetSections)
+	v1.Get("/search", retH.Search)
 
-	// UI
 	uiH := ui.NewHandler(docSvc, retSvc)
 	app.Get("/ui", uiH.Dashboard)
 	app.Post("/ui/upload", uiH.UploadSubmit)

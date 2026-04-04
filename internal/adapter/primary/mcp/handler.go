@@ -24,6 +24,18 @@ func (h *handler) listDocuments(ctx context.Context, _ *mcplib.CallToolRequest) 
 	return mcplib.NewTextResult(formatDocumentList(docs)), nil
 }
 
+func (h *handler) search(ctx context.Context, req *mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	query, ok := req.Params.Arguments["query"].(string)
+	if !ok || query == "" {
+		return nil, fmt.Errorf("query is required")
+	}
+	hits, err := h.retSvc.Search(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return mcplib.NewTextResult(formatSearchHits(hits)), nil
+}
+
 func (h *handler) getTOC(ctx context.Context, req *mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
 	docID, ok := req.Params.Arguments["doc_id"].(string)
 	if !ok || docID == "" {

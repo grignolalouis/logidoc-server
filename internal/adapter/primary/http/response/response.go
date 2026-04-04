@@ -5,7 +5,6 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/domain"
 )
 
-// Document is the API representation of a document.
 type Document struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
@@ -18,7 +17,6 @@ type Document struct {
 	IndexedAt   *string `json:"indexed_at,omitempty"`
 }
 
-// FromDocument converts a domain Document to a response Document.
 func FromDocument(doc *domain.Document) Document {
 	resp := Document{
 		ID:          doc.ID,
@@ -39,22 +37,18 @@ func FromDocument(doc *domain.Document) Document {
 	return resp
 }
 
-// DocumentList wraps a list of documents.
 type DocumentList struct {
 	Documents []Document `json:"documents"`
 }
 
-// TOC wraps the table of contents for a document.
 type TOC struct {
 	TOC []Node `json:"toc"`
 }
 
-// Sections wraps a list of retrieved sections.
 type Sections struct {
 	Sections []Node `json:"sections"`
 }
 
-// Node is the API representation of a document tree node.
 type Node struct {
 	ID        string `json:"id"`
 	Title     string `json:"title"`
@@ -65,7 +59,6 @@ type Node struct {
 	Children  []Node `json:"children"`
 }
 
-// FromNodes converts domain nodes to response nodes.
 func FromNodes(nodes []domain.Node) []Node {
 	result := make([]Node, len(nodes))
 	for i, n := range nodes {
@@ -82,7 +75,6 @@ func FromNodes(nodes []domain.Node) []Node {
 	return result
 }
 
-// Error is the standard API error format.
 type Error struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`

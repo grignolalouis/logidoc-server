@@ -9,15 +9,15 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-type RetrievalHandler struct {
+type Retrieval struct {
 	svc port.RetrievalService
 }
 
-func NewRetrievalHandler(svc port.RetrievalService) *RetrievalHandler {
-	return &RetrievalHandler{svc: svc}
+func NewRetrieval(svc port.RetrievalService) *Retrieval {
+	return &Retrieval{svc: svc}
 }
 
-func (h *RetrievalHandler) GetTOC(c fiber.Ctx) error {
+func (h *Retrieval) GetTOC(c fiber.Ctx) error {
 	nodes, err := h.svc.GetTOC(c.Context(), c.Params("id"))
 	if err != nil {
 		return err
@@ -25,18 +25,28 @@ func (h *RetrievalHandler) GetTOC(c fiber.Ctx) error {
 	return c.Status(200).JSON(response.TOC{TOC: response.FromNodes(nodes)})
 }
 
-func (h *RetrievalHandler) GetSections(c fiber.Ctx) error {
+func (h *Retrieval) GetSections(c fiber.Ctx) error {
 	idsParam := c.Query("ids")
 	if idsParam == "" {
 		return c.Status(400).JSON(response.Error{Error: "ids query parameter is required"})
 	}
-	nodeIDs := splitAndTrim(idsParam)
-
-	nodes, err := h.svc.GetSections(c.Context(), c.Params("id"), nodeIDs)
+	nodes, err := h.svc.GetSections(c.Context(), c.Params("id"), splitAndTrim(idsParam))
 	if err != nil {
 		return err
 	}
 	return c.Status(200).JSON(response.Sections{Sections: response.FromNodes(nodes)})
+}
+
+func (h *Retrieval) Search(c fiber.Ctx) error {
+	q := c.Query("q")
+	if q == "" {
+		return c.Status(400).JSON(response.Error{Error: "q query parameter is required"})
+	}
+	hits, err := h.svc.Search(c.Context(), q)
+	if err != nil {
+		return err
+	}
+	return c.Status(200).JSON(fiber.Map{"results": hits})
 }
 
 func splitAndTrim(s string) []string {

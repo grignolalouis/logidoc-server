@@ -18,18 +18,15 @@ var templateFS embed.FS
 
 var tmpl = template.Must(template.ParseFS(templateFS, "templates/*.html"))
 
-// Handler serves the UI pages.
 type Handler struct {
 	docSvc port.DocumentService
 	retSvc port.RetrievalService
 }
 
-// NewHandler creates a new UI handler.
 func NewHandler(docSvc port.DocumentService, retSvc port.RetrievalService) *Handler {
 	return &Handler{docSvc: docSvc, retSvc: retSvc}
 }
 
-// Dashboard renders the document list page.
 func (h *Handler) Dashboard(c fiber.Ctx) error {
 	docs, err := h.docSvc.ListAll(c.Context())
 	if err != nil {
@@ -40,7 +37,6 @@ func (h *Handler) Dashboard(c fiber.Ctx) error {
 	})
 }
 
-// DocListPartial returns just the table rows for HTMX polling (no layout).
 func (h *Handler) DocListPartial(c fiber.Ctx) error {
 	docs, err := h.docSvc.ListAll(c.Context())
 	if err != nil {
@@ -51,7 +47,6 @@ func (h *Handler) DocListPartial(c fiber.Ctx) error {
 	})
 }
 
-// UploadSubmit handles file upload then returns updated table rows.
 func (h *Handler) UploadSubmit(c fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -68,11 +63,9 @@ func (h *Handler) UploadSubmit(c fiber.Ctx) error {
 		return c.Status(500).SendString(err.Error())
 	}
 
-	// Return updated rows so the table refreshes
 	return h.DocListPartial(c)
 }
 
-// IndexSubmit triggers indexation then returns updated rows.
 func (h *Handler) IndexSubmit(c fiber.Ctx) error {
 	if err := h.docSvc.Index(c.Context(), c.Params("id")); err != nil {
 		return h.renderFragment(c, "upload-error", fiber.Map{"Error": err.Error()})
@@ -80,7 +73,6 @@ func (h *Handler) IndexSubmit(c fiber.Ctx) error {
 	return h.DocListPartial(c)
 }
 
-// Document renders the document detail page with TOC.
 func (h *Handler) Document(c fiber.Ctx) error {
 	doc, err := h.docSvc.Get(c.Context(), c.Params("id"))
 	if err != nil {
@@ -104,7 +96,6 @@ func (h *Handler) Document(c fiber.Ctx) error {
 	})
 }
 
-// ---- template helpers ----
 
 type tocNode struct {
 	ID        string
@@ -132,7 +123,6 @@ func convertNodes(nodes []domain.Node) []tocNode {
 	return result
 }
 
-// renderPage renders a template wrapped in layout.html.
 func (h *Handler) renderPage(c fiber.Ctx, page string, title string, data fiber.Map) error {
 	var content bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&content, page, data); err != nil {
@@ -149,7 +139,6 @@ func (h *Handler) renderPage(c fiber.Ctx, page string, title string, data fiber.
 	return c.Send(buf.Bytes())
 }
 
-// renderFragment renders a template fragment (no layout, for HTMX swaps).
 func (h *Handler) renderFragment(c fiber.Ctx, name string, data any) error {
 	var buf bytes.Buffer
 	if err := tmpl.ExecuteTemplate(&buf, name, data); err != nil {

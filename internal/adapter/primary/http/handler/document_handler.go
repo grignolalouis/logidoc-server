@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -10,16 +12,16 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/port"
 )
 
-type DocumentHandler struct {
+type Document struct {
 	svc       port.DocumentService
-	fileStore port.FileStore
+	fileStore port.FileRepository
 }
 
-func NewDocumentHandler(svc port.DocumentService, fileStore port.FileStore) *DocumentHandler {
-	return &DocumentHandler{svc: svc, fileStore: fileStore}
+func NewDocument(svc port.DocumentService, fileStore port.FileRepository) *Document {
+	return &Document{svc: svc, fileStore: fileStore}
 }
 
-func (h *DocumentHandler) Upload(c fiber.Ctx) error {
+func (h *Document) Upload(c fiber.Ctx) error {
 	file, err := c.FormFile("file")
 	if err != nil {
 		return c.Status(400).JSON(response.Error{Error: "file is required"})
@@ -37,7 +39,7 @@ func (h *DocumentHandler) Upload(c fiber.Ctx) error {
 	return c.Status(201).JSON(response.FromDocument(doc))
 }
 
-func (h *DocumentHandler) List(c fiber.Ctx) error {
+func (h *Document) List(c fiber.Ctx) error {
 	docs, err := h.svc.List(c.Context())
 	if err != nil {
 		return c.Status(500).JSON(response.Error{Error: err.Error()})
@@ -49,7 +51,7 @@ func (h *DocumentHandler) List(c fiber.Ctx) error {
 	return c.Status(200).JSON(response.DocumentList{Documents: items})
 }
 
-func (h *DocumentHandler) Get(c fiber.Ctx) error {
+func (h *Document) Get(c fiber.Ctx) error {
 	doc, err := h.svc.Get(c.Context(), c.Params("id"))
 	if err != nil {
 		return err // ErrorHandler maps domain errors to HTTP status
@@ -57,7 +59,7 @@ func (h *DocumentHandler) Get(c fiber.Ctx) error {
 	return c.Status(200).JSON(response.FromDocument(doc))
 }
 
-func (h *DocumentHandler) File(c fiber.Ctx) error {
+func (h *Document) File(c fiber.Ctx) error {
 	id := c.Params("id")
 	doc, err := h.svc.Get(c.Context(), id)
 	if err != nil {
@@ -74,18 +76,18 @@ func (h *DocumentHandler) File(c fiber.Ctx) error {
 	} else {
 		c.Set("Content-Type", "text/plain; charset=utf-8")
 	}
-	c.Set("Content-Disposition", `inline; filename="`+safeName+`"`)
+	c.Set("Content-Disposition", fmt.Sprintf("inline; filename*=UTF-8''%s", url.QueryEscape(safeName)))
 	return c.Send(data)
 }
 
-func (h *DocumentHandler) Index(c fiber.Ctx) error {
+func (h *Document) Index(c fiber.Ctx) error {
 	if err := h.svc.Index(c.Context(), c.Params("id")); err != nil {
 		return c.Status(400).JSON(response.Error{Error: err.Error()})
 	}
 	return c.Status(202).JSON(fiber.Map{"status": "indexing"})
 }
 
-func (h *DocumentHandler) Delete(c fiber.Ctx) error {
+func (h *Document) Delete(c fiber.Ctx) error {
 	if err := h.svc.Delete(c.Context(), c.Params("id")); err != nil {
 		return err // ErrorHandler maps domain errors
 	}

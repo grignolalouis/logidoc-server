@@ -14,17 +14,15 @@ type fileDoc struct {
 	Data []byte `bson:"data"`
 }
 
-// FileStore stores raw file bytes in MongoDB.
-type FileStore struct {
+type FileRepository struct {
 	col *mongo.Collection
 }
 
-// NewFileStore creates a new FileStore.
-func NewFileStore(conn *Connection) *FileStore {
-	return &FileStore{col: conn.Database().Collection("files")}
+func NewFileRepository(conn *Connection) *FileRepository {
+	return &FileRepository{col: conn.Database().Collection("files")}
 }
 
-func (s *FileStore) Save(ctx context.Context, id string, data []byte) error {
+func (s *FileRepository) Save(ctx context.Context, id string, data []byte) error {
 	_, err := s.col.ReplaceOne(ctx,
 		bson.M{"_id": id},
 		fileDoc{ID: id, Data: data},
@@ -33,7 +31,7 @@ func (s *FileStore) Save(ctx context.Context, id string, data []byte) error {
 	return err
 }
 
-func (s *FileStore) Load(ctx context.Context, id string) ([]byte, error) {
+func (s *FileRepository) Load(ctx context.Context, id string) ([]byte, error) {
 	var doc fileDoc
 	if err := s.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc); err != nil {
 		return nil, fmt.Errorf("file not found: %w", err)
@@ -41,7 +39,7 @@ func (s *FileStore) Load(ctx context.Context, id string) ([]byte, error) {
 	return doc.Data, nil
 }
 
-func (s *FileStore) Delete(ctx context.Context, id string) error {
+func (s *FileRepository) Delete(ctx context.Context, id string) error {
 	_, err := s.col.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
