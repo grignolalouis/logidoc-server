@@ -1,127 +1,116 @@
 # Logidoc Server
 
-> **logidoc** = logos (λόγος, raison/logique) + document
-> Vectorless, reasoning-based document indexing for AI agents. Open source.
+Self-hosted document indexing for AI agents. Indexes PDF, DOCX, PPTX, HTML, EPUB into searchable hierarchical trees. Agents browse the table of contents, pick sections, retrieve text. No vectors, no embeddings.
 
-## What is this project?
+## Quick start
 
-Logidoc is a self-hosted server that indexes documents (PDF, Markdown) into hierarchical JSON tree structures, then exposes reasoning-based retrieval via MCP tools and HTTP API. Any MCP-compatible agent (trpc-agent-go, Claude Desktop, Cursor, etc.) can search indexed documents without vector databases or chunking.
-
-Inspired by PageIndex methodology (VectifyAI) but implemented as a standalone Go server with clean architecture.
-
-## Architecture
-
-**Hexagonal Architecture / Ports & Adapters with DDD at the center.**
-
-```
-cmd/server/main.go              → Entry point, graceful shutdown
-app.go                           → DI wiring
-
-core/
-  domain/                        → Document, Index, Node, SearchResult, errors
-  port/
-    primary.go                   → DocumentService, RetrievalService (interfaces)
-    secondary.go                 → DocumentRepo, IndexRepo, LLMProvider (interfaces)
-  service/                       → Implementations orchestrating the pipeline
-
-adapter/
-  primary/
-    http/                        → Fiber v3 (server, router, middleware, handler/, request/, response/)
-    mcp/                         → trpc-mcp-go (server, tools: search, list_documents, get_sections)
-  secondary/
-    repository/mongo/            → MongoDB implementations
-    llm/                         → LLM adapter for retrieval (navigation only)
-
-infrastructure/                  → logger (slog), errors, eventbus, async worker pool, validator
-config/                          → Config structs + godotenv loader
-testutil/                        → mocks, fixtures, helpers
-api/openapi.yaml                 → OpenAPI spec (source of truth for SDKs)
-fern/                            → SDK generation config (Go, TS, Python)
+```bash
+cp .env.example .env    # set LLM_PROVIDER, LLM_MODEL, LLM_API_KEY
+docker compose up --build
 ```
 
-## Stack
+- HTTP API + UI: `http://localhost:7042`
+- MCP server: `http://localhost:7043/mcp`
+- Health check: `GET /health`
 
-| Component | Choice | Import |
-|-----------|--------|--------|
-| HTTP | Fiber v3 | `github.com/gofiber/fiber/v3` |
-| MCP server | trpc-mcp-go | `trpc.group/trpc-go/trpc-mcp-go` |
-| LLM interface | trpc-agent-go model.Model | `trpc.group/trpc-go/trpc-agent-go/model` |
-| LLM providers | OpenAI, Anthropic via trpc-agent-go | `trpc-agent-go/model/openai`, `trpc-agent-go/model/anthropic` |
-| PDF parsing | trpc-agent-go knowledge reader | `trpc-agent-go/knowledge/document/reader/pdf` (pdfcpu) |
-| OCR | trpc-agent-go tesseract | `trpc-agent-go/knowledge/ocr/tesseract` |
-| Vision/multimodal | trpc-agent-go model.Message | `msg.AddImageData()` for VLM fallback |
-| Indexation pipeline | trpc-agent-go ChainAgent | `trpc-agent-go/agent/chainagent` + `llmagent` + `function` tools |
-| Structured output | trpc-agent-go | `llmagent.WithStructuredOutputJSON()` |
-| Logger | slog (stdlib) | `log/slog` |
-| Database | MongoDB | `go.mongodb.org/mongo-driver/v2` |
-| Config | godotenv | `github.com/joho/godotenv` |
-
-## Key design decisions
-
-1. **JSON is self-contained** — after indexing, the PDF is not needed. Full text is stored in each tree node.
-2. **Tables: parser first, OCR+LLM fallback** — pdfcpu extracts text, tesseract OCR handles images, VLM vision as last resort.
-3. **Priority = robust pipeline** — don't optimize tokens yet, focus on producing complete and reliable JSON indexes.
-4. **MongoDB, no migrations** — schemaless, lazy migration via document version field. `docker pull && restart` = update.
-5. **ChainAgent for indexation** — deterministic pipeline (TOC detect → parse → tree build → summarize), not agentic free-form.
-6. **model.Model direct for retrieval** — single LLM call to navigate tree, no agent overhead needed.
-
-## Indexation pipeline (ChainAgent)
+## Project structure
 
 ```
-ChainAgent "indexing-pipeline"
-  ├── TOC Detector    (LLMAgent + StructuredOutputJSON → TOCDetectionResult)
-  ├── Page Parser     (LLMAgent + FunctionTools: parse_document, vision_parse_page)
-  ├── Tree Builder    (LLMAgent + StructuredOutputJSON → DocumentTree)
-  └── Summarizer      (LLMAgent + StructuredOutputJSON → DocumentMeta)
+cmd/server/          Entry point
+internal/
+  app.go             DI wiring
+  config/            Env-based configuration
+  core/
+    domain/          Document, Index, Node, errors
+    port/            Interfaces (DocumentService, IndexService, RetrievalService, repositories)
+    service/
+      document/      Upload, index trigger, CRUD
+      index/         Indexation pipeline (TOC detection, chunking, calibration, tables, images)
+      retrieval/     TOC, sections, cross-doc search
+  adapter/
+    primary/
+      http/          Fiber v3 (router, handlers, middleware, HTMX UI)
+      mcp/           MCP server (4 tools: list, search, get_toc, get_sections)
+    secondary/
+      llm/           LLM provider factory (anthropic, openai, mistral, xai, groq, ollama)
+      repository/    MongoDB (documents, indexes, files)
+  infrastructure/    Logger (slog)
+pkg/
+  jsonutil/          JSON repair for LLM output
+  ptr/               Pointer helpers
 ```
 
-FunctionTools wrap the framework's PDF reader (`knowledge/document/reader/pdf`) and OCR (`knowledge/ocr/tesseract`).
+## Configuration
 
-## Retrieval flow
+All via environment variables. See `.env.example` for full list.
+
+**Required:**
+- `LLM_PROVIDER` — anthropic, openai, mistral, xai, groq, ollama
+- `LLM_MODEL` — model name (e.g. claude-haiku-4-5-20251001, gpt-4o-mini)
+- `LLM_API_KEY` — provider API key
+
+**Optional:**
+- `VISION_PROVIDER` / `VISION_MODEL` — separate model for image description and table extraction
+- `API_KEY` — protect /v1/* endpoints with Bearer token auth
+- `INDEXER_ENABLE_TABLE_EXTRACTION` — VLM fallback for garbled tables
+- `INDEXER_ENABLE_IMAGE_DESCRIPTION` — extract and describe images via VLM
+- `MCP_STDIO=true` — stdio mode for Claude Desktop
+
+## MCP integration
+
+Add to `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "logidoc": {
+      "type": "http",
+      "url": "http://localhost:7043/mcp"
+    }
+  }
+}
+```
+
+## API usage
+
+```bash
+# Upload
+curl -X POST http://localhost:7042/v1/documents -F "file=@report.pdf"
+
+# Index
+curl -X POST http://localhost:7042/v1/documents/{id}/index
+
+# Get TOC
+curl http://localhost:7042/v1/documents/{id}/toc
+
+# Get sections
+curl "http://localhost:7042/v1/documents/{id}/sections?ids=chapter-1,section-2"
+
+# Search across all documents
+curl "http://localhost:7042/v1/search?q=authentication"
+```
+
+## How indexation works
 
 ```
-Query + TOC (titles+summaries) → LLM NavigateTree → node IDs
-Node IDs → extract text from stored JSON → return results
+Upload → Parse (pdftotext / pandoc) → Detect TOC → Calibrate pages → Build tree → Enrich (tables, images) → Save
 ```
 
-## What the server exposes
-
-### HTTP API (for apps/SDKs)
-```
-POST   /v1/documents              Upload + async indexation
-GET    /v1/documents              List all documents
-GET    /v1/documents/:id          Get document details + status
-DELETE /v1/documents/:id          Delete document + index
-POST   /v1/search                 Search across documents
-```
-
-### MCP Tools (for LLM agents)
-```
-pageindex_search(query, doc_ids?)         Search indexed documents
-pageindex_list_documents()                List docs with titles, descriptions, top sections
-pageindex_get_sections(doc_id, node_ids)  Get full text of specific sections
-```
-
-## Research docs
-
-Detailed research and architecture documents are in the sibling repo:
-`../trpc-agent-go/research/pageindex/`
-
-- `01-overview.md` — What PageIndex methodology is
-- `02-methodology.md` — The 4-phase pipeline
-- `03-data-structures.md` — TOCNode JSON schema
-- `06-ingestion-deep-dive.md` — Detailed Q&A on ingestion
-- `07-design-decisions.md` — Key decisions
-- `09-architecture-hexagonal.md` — Full hexagonal architecture with code
-- `10-pipeline-with-agents.md` — Pipeline using trpc-agent-go agents
+- With TOC: ~2-3 LLM calls, ~6k tokens, ~15s
+- Without TOC: sequential chunking, ~30k tokens, ~60s
+- Tables: heuristic detection + VLM fallback (opt-in)
+- Images: pdfimages extraction + VLM description (opt-in)
 
 ## Commands
 
 ```bash
-make dev          # Run locally
-make build        # Build binary
-make test         # Run tests
-make docker       # Docker compose (server + mongo)
-make sdk          # Generate SDKs via Fern
-make api-check    # Validate OpenAPI spec
+make dev           # Docker + Air hot reload
+make dev-local     # Run without Docker (needs poppler-utils, pandoc)
+make build         # Build binary
+make test          # Run tests
+make prod          # Production Docker deployment
 ```
+
+## Documentation
+
+Full docs: https://grignolalouis.github.io/logidoc-server/
