@@ -69,11 +69,6 @@ curl "http://localhost:7042/v1/search?q=authentication"
 Upload → Parse (pdftotext / pandoc) → Detect TOC → Calibrate pages → Build tree → Enrich (tables, images) → Save
 ```
 
-- With TOC: ~2-3 LLM calls, ~6k tokens, ~15s
-- Without TOC: sequential chunking, ~30k tokens, ~60s
-- Tables: heuristic detection + VLM fallback (opt-in)
-- Images: pdfimages extraction + VLM description (opt-in)
-
 ## Commands
 
 ```bash
