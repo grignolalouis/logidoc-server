@@ -13,33 +13,6 @@ docker compose up --build
 - MCP server: `http://localhost:7043/mcp`
 - Health check: `GET /health`
 
-## Project structure
-
-```
-cmd/server/          Entry point
-internal/
-  app.go             DI wiring
-  config/            Env-based configuration
-  core/
-    domain/          Document, Index, Node, errors
-    port/            Interfaces (DocumentService, IndexService, RetrievalService, repositories)
-    service/
-      document/      Upload, index trigger, CRUD
-      index/         Indexation pipeline (TOC detection, chunking, calibration, tables, images)
-      retrieval/     TOC, sections, cross-doc search
-  adapter/
-    primary/
-      http/          Fiber v3 (router, handlers, middleware, HTMX UI)
-      mcp/           MCP server (4 tools: list, search, get_toc, get_sections)
-    secondary/
-      llm/           LLM provider factory (anthropic, openai, mistral, xai, groq, ollama)
-      repository/    MongoDB (documents, indexes, files)
-  infrastructure/    Logger (slog)
-pkg/
-  jsonutil/          JSON repair for LLM output
-  ptr/               Pointer helpers
-```
-
 ## Configuration
 
 All via environment variables. See `.env.example` for full list.
