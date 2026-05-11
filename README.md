@@ -37,6 +37,14 @@ Works with Claude Code, Cursor, Windsurf, and any MCP-compatible client.
 
 [Go](https://github.com/grignolalouis/logidoc-sdk-go) · [TypeScript](https://github.com/grignolalouis/logidoc-sdk-ts) · [Python](https://github.com/grignolalouis/logidoc-sdk-python)
 
+## Roadmap
+
+- [ ] LLM tracing via Phoenix
+- [ ] Metrics + dashboards (Prometheus / Grafana)
+- [ ] LLM cost monitoring metrics
+- [ ] Migrate to a real prompt-evaluation client
+- [ ] Auto-generated Python and TypeScript SDKs
+
 ## License
 
 MIT
