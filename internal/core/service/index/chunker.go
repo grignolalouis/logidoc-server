@@ -8,9 +8,6 @@ import (
 	"time"
 
 	"trpc.group/trpc-go/trpc-agent-go/model"
-
-	"github.com/logidoc/logidoc-server/pkg/jsonutil"
-	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
 const defaultChunkSize = 10
@@ -73,8 +70,8 @@ func callLLM(ctx context.Context, llm model.Model, prompt string) ([]FlatSection
 			model.NewUserMessage(prompt),
 		},
 		GenerationConfig: model.GenerationConfig{
-			Temperature: ptr.Float64(0.1),
-			MaxTokens:   ptr.Int(4000),
+			Temperature: float64Ptr(0.1),
+			MaxTokens:   intPtr(4000),
 			Stream:      false,
 		},
 	}
@@ -115,6 +112,6 @@ func doLLMCall(ctx context.Context, llm model.Model, req *model.Request) ([]Flat
 		}
 	}
 
-	sections, err := jsonutil.ParseArray[FlatSection](content)
+	sections, err := parseJSONArray[FlatSection](content)
 	return sections, usage, err
 }

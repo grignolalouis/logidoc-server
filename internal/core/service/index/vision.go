@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"trpc.group/trpc-go/trpc-agent-go/model"
-
-	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
 // CallVision sends an image to the VLM with a prompt and returns the text response.
@@ -18,7 +16,7 @@ func CallVision(ctx context.Context, llm model.Model, imageData []byte, prompt s
 
 	req := &model.Request{
 		Messages:         []model.Message{msg},
-		GenerationConfig: model.GenerationConfig{Temperature: ptr.Float64(0.2), MaxTokens: ptr.Int(500), Stream: false},
+		GenerationConfig: model.GenerationConfig{Temperature: float64Ptr(0.2), MaxTokens: intPtr(500), Stream: false},
 	}
 
 	respChan, err := llm.GenerateContent(ctx, req)

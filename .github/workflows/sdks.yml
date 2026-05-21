@@ -3,7 +3,7 @@ name: Generate SDKs
 on:
   push:
     branches: [main]
-    paths: ['api/openapi.yaml']
+    paths: ['openapi.yaml']
 
 jobs:
   generate:

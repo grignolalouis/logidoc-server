@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "logidoc": {
-      "type": "http",
-      "url": "http://localhost:7043/mcp"
-    }
-  }
-}

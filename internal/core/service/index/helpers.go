@@ -1,5 +1,4 @@
-// Package jsonutil provides helpers for parsing and repairing LLM-generated JSON.
-package jsonutil
+package index
 
 import (
 	"encoding/json"
@@ -7,10 +6,13 @@ import (
 	"strings"
 )
 
-// ParseArray finds and parses a JSON array from raw text that may contain
-// surrounding non-JSON content. Handles truncated or malformed arrays
-// commonly produced by LLMs.
-func ParseArray[T any](raw string) ([]T, error) {
+func float64Ptr(f float64) *float64 { return &f }
+func intPtr(i int) *int             { return &i }
+
+// parseJSONArray finds and parses a JSON array from raw text that may contain
+// surrounding non-JSON content. Handles truncated or malformed arrays commonly
+// produced by LLMs by closing unbalanced brackets and trimming from the right.
+func parseJSONArray[T any](raw string) ([]T, error) {
 	raw = strings.TrimSpace(raw)
 
 	start := strings.Index(raw, "[")
@@ -24,7 +26,7 @@ func ParseArray[T any](raw string) ([]T, error) {
 		return result, nil
 	}
 
-	if repaired := Repair(sub); repaired != sub {
+	if repaired := repairJSON(sub); repaired != sub {
 		if err := json.Unmarshal([]byte(repaired), &result); err == nil && len(result) > 0 {
 			return result, nil
 		}
@@ -39,7 +41,7 @@ func ParseArray[T any](raw string) ([]T, error) {
 		if err := json.Unmarshal([]byte(sub[:trim]), &attempt); err == nil && len(attempt) > 0 {
 			return attempt, nil
 		}
-		if repaired := Repair(sub[:trim]); repaired != sub[:trim] {
+		if repaired := repairJSON(sub[:trim]); repaired != sub[:trim] {
 			if err := json.Unmarshal([]byte(repaired), &attempt); err == nil && len(attempt) > 0 {
 				return attempt, nil
 			}
@@ -49,9 +51,9 @@ func ParseArray[T any](raw string) ([]T, error) {
 	return nil, fmt.Errorf("invalid JSON array (len=%d)", len(sub))
 }
 
-// Repair closes any unclosed brackets and braces in a JSON string.
-// Handles strings correctly (doesn't count brackets inside quoted strings).
-func Repair(s string) string {
+// repairJSON closes any unclosed brackets and braces, ignoring those inside
+// quoted strings.
+func repairJSON(s string) string {
 	var stack []byte
 	inString, escape := false, false
 
@@ -87,12 +89,4 @@ func Repair(s string) string {
 		s += string(stack[i])
 	}
 	return s
-}
-
-// Truncate returns the first n characters of s, appending "..." if truncated.
-func Truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n] + "..."
 }

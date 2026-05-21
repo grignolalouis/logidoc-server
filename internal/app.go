@@ -16,7 +16,7 @@ import (
 	"github.com/logidoc/logidoc-server/internal/core/service/document"
 	"github.com/logidoc/logidoc-server/internal/core/service/index"
 	"github.com/logidoc/logidoc-server/internal/core/service/retrieval"
-	infralog "github.com/logidoc/logidoc-server/internal/infrastructure/logger"
+	obslog "github.com/logidoc/logidoc-server/internal/observability/logger"
 )
 
 type App struct {
@@ -27,7 +27,7 @@ type App struct {
 }
 
 func NewApp(cfg *config.Config) (*App, error) {
-	logger := infralog.New(cfg.Logger)
+	logger := obslog.New(cfg.Logger)
 	slog.SetDefault(logger)
 
 	logger.Info("starting logidoc",

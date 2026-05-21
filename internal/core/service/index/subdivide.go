@@ -6,9 +6,6 @@ import (
 	"log/slog"
 
 	"trpc.group/trpc-go/trpc-agent-go/model"
-
-	"github.com/logidoc/logidoc-server/pkg/jsonutil"
-	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
 const defaultMaxPagesPerNode = 20
@@ -55,8 +52,8 @@ func detectSubStructure(ctx context.Context, llm model.Model, pages *Pages, star
 			model.NewUserMessage(prompt),
 		},
 		GenerationConfig: model.GenerationConfig{
-			Temperature: ptr.Float64(0.1),
-			MaxTokens:   ptr.Int(4000),
+			Temperature: float64Ptr(0.1),
+			MaxTokens:   intPtr(4000),
 			Stream:      false,
 		},
 	}
@@ -77,7 +74,7 @@ func detectSubStructure(ctx context.Context, llm model.Model, pages *Pages, star
 		}
 	}
 
-	sections, err := jsonutil.ParseArray[FlatSection](content)
+	sections, err := parseJSONArray[FlatSection](content)
 	if err != nil || len(sections) <= 1 {
 		return nil, fmt.Errorf("no sub-structure found")
 	}

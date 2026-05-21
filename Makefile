@@ -30,4 +30,4 @@ sdk:
 
 # OpenAPI validation
 api-check:
-	npx @redocly/cli lint api/openapi.yaml
+	npx @redocly/cli lint openapi.yaml

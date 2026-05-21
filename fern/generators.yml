@@ -1,6 +1,6 @@
 api:
   specs:
-    - openapi: ../api/openapi.yaml
+    - openapi: ../openapi.yaml
 
 groups:
   local:

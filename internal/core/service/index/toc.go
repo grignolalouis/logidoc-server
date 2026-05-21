@@ -12,9 +12,6 @@ import (
 	"trpc.group/trpc-go/trpc-agent-go/session/inmemory"
 	"trpc.group/trpc-go/trpc-agent-go/tool"
 	"trpc.group/trpc-go/trpc-agent-go/tool/function"
-
-	"github.com/logidoc/logidoc-server/pkg/jsonutil"
-	"github.com/logidoc/logidoc-server/pkg/ptr"
 )
 
 type TOCResult struct {
@@ -32,8 +29,8 @@ func DetectTOC(ctx context.Context, llm model.Model, pages *Pages) (*TOCResult, 
 		llmagent.WithInstruction(TOCAgentInstruction),
 		llmagent.WithTools(tools),
 		llmagent.WithGenerationConfig(model.GenerationConfig{
-			Temperature: ptr.Float64(0.1),
-			MaxTokens:   ptr.Int(8000),
+			Temperature: float64Ptr(0.1),
+			MaxTokens:   intPtr(8000),
 			Stream:      false,
 		}),
 		llmagent.WithMaxLLMCalls(10),
@@ -63,7 +60,7 @@ func DetectTOC(ctx context.Context, llm model.Model, pages *Pages) (*TOCResult, 
 		return &TOCResult{Metrics: m, Found: false}, nil
 	}
 
-	sections, err := jsonutil.ParseArray[FlatSection](result)
+	sections, err := parseJSONArray[FlatSection](result)
 	if err != nil {
 		return &TOCResult{Metrics: m, Found: false}, nil
 	}
